@@ -1,0 +1,7 @@
+{
+  "name": "C.M.A – Controle de Montagens e Assistências",
+  "description": "Sistema centralizado para gestão de ordens de serviço de montagens de móveis e assistências técnicas, com perfis para administradores, técnicos e clientes.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
