@@ -11,10 +11,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 class SupabaseDatabaseService {
   private isInitialized = false;
 
+  /**
+   * Inicializa o banco garantindo que os dados básicos existam.
+   * Em produção, isso seria gerenciado por migrations.
+   */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
     try {
+      // Verifica se há usuários, se não houver (primeiro acesso), semeia com mocks
       const { data: users } = await supabase.from('users').select('id').limit(1);
       if (!users || users.length === 0) {
         console.info('[C.M.A Supabase] Semeando banco de dados inicial...');
@@ -25,6 +30,7 @@ class SupabaseDatabaseService {
       this.isInitialized = true;
     } catch (error) {
       console.error('[C.M.A Supabase] Erro na inicialização:', error);
+      // Fallback silencioso para garantir que o app não quebre
     }
   }
 
@@ -35,12 +41,16 @@ class SupabaseDatabaseService {
       .select('*')
       .order('name', { ascending: true });
     
-    if (error) return MOCK_USERS;
+    if (error) {
+      console.error('Erro ao buscar usuários:', error);
+      return MOCK_USERS;
+    }
     return data as User[];
   }
 
   async saveUsers(users: User[]): Promise<void> {
-    await supabase.from('users').upsert(users);
+    const { error } = await supabase.from('users').upsert(users);
+    if (error) console.error('Erro ao salvar usuários:', error);
   }
 
   // --- Orders ---
@@ -50,16 +60,17 @@ class SupabaseDatabaseService {
       .select('*')
       .order('createdAt', { ascending: false });
     
-    if (error) return INITIAL_ORDERS;
+    if (error) {
+      console.error('Erro ao buscar ordens:', error);
+      return INITIAL_ORDERS;
+    }
     return data as WorkOrder[];
   }
 
   async saveOrders(orders: WorkOrder[]): Promise<void> {
-    await supabase.from('orders').upsert(orders);
-  }
-
-  async updateSingleOrder(order: WorkOrder): Promise<void> {
-    await supabase.from('orders').upsert(order);
+    // Para simplificar a integração com o estado atual do App, fazemos upsert do array
+    const { error } = await supabase.from('orders').upsert(orders);
+    if (error) console.error('Erro ao salvar ordens:', error);
   }
 
   // --- Notifications ---
@@ -69,23 +80,16 @@ class SupabaseDatabaseService {
       .select('*')
       .order('timestamp', { ascending: false });
     
-    if (error) return [];
+    if (error) {
+      console.error('Erro ao buscar notificações:', error);
+      return [];
+    }
     return data as Notification[];
   }
 
   async saveNotifications(notifications: Notification[]): Promise<void> {
-    await supabase.from('notifications').upsert(notifications);
-  }
-
-  async addNotification(notification: Notification): Promise<void> {
-    await supabase.from('notifications').insert(notification);
-  }
-
-  async markAllNotificationsRead(userId: string): Promise<void> {
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('userId', userId);
+    const { error } = await supabase.from('notifications').upsert(notifications);
+    if (error) console.error('Erro ao salvar notificações:', error);
   }
 }
 
