@@ -1,0 +1,22 @@
+# Arquivos de desenvolvimento
+test-connection.ts
+init-database.ts
+*.test.ts
+*.spec.ts
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files (configurar na Vercel)
+.env
+.env.local
+.env*.local
+
+# Editor
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
