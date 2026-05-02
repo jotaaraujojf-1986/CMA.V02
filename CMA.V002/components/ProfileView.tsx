@@ -2,18 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Role } from '../types';
 import { PageHeader } from './ui/PageHeader';
 import { Button } from './ui/Button';
-import { User as UserIcon, Save, Camera, Mail, Phone, Shield, ArrowLeft, MapPin, Lock, Search, Loader2, Upload, Trash2, X } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Mail, Phone, Shield, ArrowLeft, MapPin, Lock, Search, Loader2, Upload, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ProfileViewProps {
   currentUser: User;
   viewer: User; // Who is looking at this profile?
-  onSave: (updatedUser: User) => void;
+  onSave: (updatedUser: User) => Promise<void>;
   onBack?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ currentUser, viewer, onSave, onBack }) => {
   const isAdmin = viewer.role === 'ADMIN';
   const fileInputId = `avatar-upload-${currentUser.id}`;
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Basic Info
   const [name, setName] = useState(currentUser.name);
@@ -122,34 +125,52 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ currentUser, viewer, o
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const showStatus = (type: 'success' | 'error', message: string) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    setSaveStatus({ type, message });
+    if (type === 'success') {
+      statusTimerRef.current = setTimeout(() => setSaveStatus(null), 5000);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSaving(true);
+    setSaveStatus(null);
+
     let formattedAddress = currentUser.address;
     if (street || city) {
-        formattedAddress = `${street || ''}, ${addressNumber || ''} ${complement ? '- ' + complement : ''}, ${neighborhood || ''}, ${city || ''} - ${state || ''}`;
-        if (cep) formattedAddress += `, CEP: ${cep}`;
+      formattedAddress = `${street || ''}, ${addressNumber || ''} ${complement ? '- ' + complement : ''}, ${neighborhood || ''}, ${city || ''} - ${state || ''}`;
+      if (cep) formattedAddress += `, CEP: ${cep}`;
     }
 
-    onSave({
-      ...currentUser,
-      name,
-      phone,
-      secondaryPhone,
-      email,
-      role,
-      ...(role === 'TECHNICIAN' ? { classification } : {}),
-      ...(password ? { password } : {}),
-      avatarUrl,
-      address: formattedAddress,
-      cep,
-      street,
-      addressNumber,
-      complement,
-      neighborhood,
-      city,
-      state
-    });
+    try {
+      await onSave({
+        ...currentUser,
+        name,
+        phone,
+        secondaryPhone,
+        email,
+        role,
+        ...(role === 'TECHNICIAN' ? { classification } : {}),
+        ...(password ? { password } : {}),
+        avatarUrl,
+        address: formattedAddress,
+        cep,
+        street,
+        addressNumber,
+        complement,
+        neighborhood,
+        city,
+        state,
+      });
+      showStatus('success', 'Perfil atualizado com sucesso!');
+      setPassword('');
+    } catch (err: any) {
+      showStatus('error', err?.message || 'Erro ao salvar. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -481,10 +502,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ currentUser, viewer, o
                     Cancelar
                   </Button>
                )}
-              <Button type="submit" disabled={isProcessingImage} icon={isProcessingImage ? <Loader2 className="animate-spin"/> : <Save size={20} />}>
-                Salvar Alterações
+              <Button type="submit" disabled={isProcessingImage || isSaving} icon={isSaving ? <Loader2 size={20} className="animate-spin"/> : <Save size={20} />}>
+                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
             </div>
+
+            {saveStatus && (
+              <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                saveStatus.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-red-50 border-red-200 text-red-800'
+              }`}>
+                {saveStatus.type === 'success'
+                  ? <CheckCircle size={18} className="flex-shrink-0 text-emerald-500 mt-0.5" />
+                  : <AlertCircle size={18} className="flex-shrink-0 text-red-500 mt-0.5" />}
+                <span className="flex-1">{saveStatus.message}</span>
+                <button onClick={() => setSaveStatus(null)} className="flex-shrink-0 opacity-60 hover:opacity-100">
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

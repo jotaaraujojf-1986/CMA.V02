@@ -255,32 +255,26 @@ const App = () => {
     }
   };
 
-  const handleUpdateProfile = async (updatedUser: User) => {
-    try {
-      const oldUser = usersList.find(u => u.id === updatedUser.id);
+  const handleUpdateProfile = async (updatedUser: User): Promise<void> => {
+    const oldUser = usersList.find((u: User) => u.id === updatedUser.id);
 
-      // Sincroniza credenciais em auth.users se email ou senha mudaram
-      const emailChanged = oldUser && updatedUser.email !== oldUser.email;
-      const passwordChanged = !!(updatedUser as any).password;
-      if (emailChanged || passwordChanged) {
-        await db.updateUserAuthCredentials(
-          updatedUser.id,
-          emailChanged ? updatedUser.email : undefined,
-          passwordChanged ? (updatedUser as any).password : undefined,
-        );
-      }
-
-      await db.updateUser(updatedUser);
-
-      const newList = usersList.map(u => u.id === updatedUser.id ? updatedUser : u);
-      setUsersList(newList);
-      if (user && user.id === updatedUser.id) setUser(updatedUser);
-      if (userToEdit) setUserToEdit(null);
-      alert('Perfil atualizado com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao atualizar perfil:', error);
-      alert(`Erro ao atualizar perfil: ${error.message}`);
+    // Sincroniza credenciais em auth.users se email ou senha mudaram
+    const emailChanged = oldUser && updatedUser.email !== oldUser.email;
+    const passwordChanged = !!(updatedUser as any).password;
+    if (emailChanged || passwordChanged) {
+      await db.updateUserAuthCredentials(
+        updatedUser.id,
+        emailChanged ? updatedUser.email : undefined,
+        passwordChanged ? (updatedUser as any).password : undefined,
+      );
     }
+
+    await db.updateUser(updatedUser);
+
+    const newList = usersList.map((u: User) => u.id === updatedUser.id ? updatedUser : u);
+    setUsersList(newList);
+    if (user && user.id === updatedUser.id) setUser(updatedUser);
+    if (userToEdit) setUserToEdit(null);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {

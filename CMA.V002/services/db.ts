@@ -243,22 +243,25 @@ class SupabaseDatabaseService {
       empresa_id: (user as any).empresa_id || empresaId || company?.id,
     };
 
-    const { error, count } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .update(dataToUpdate)
       .eq('id', user.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
 
     if (error) {
-      // Fallback: remove colunas adicionadas posteriormente que podem não existir
+      // Fallback: remove colunas que podem não existir no banco
       const { classification, cep, street, addressNumber, complement, neighborhood, city, state, address, ...safeU } = dataToUpdate as any;
-      const { error: fallbackError } = await supabase.from('users').update(safeU).eq('id', user.id);
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('users').update(safeU).eq('id', user.id).select('id');
       if (fallbackError) throw fallbackError;
+      if (!fallbackData || fallbackData.length === 0)
+        throw new Error('Nenhum registro atualizado. Verifique se você tem permissão para editar este usuário.');
       return;
     }
 
-    if (count === 0) {
-      throw new Error('Nenhuma linha atualizada. Verifique suas permissões de acesso.');
+    if (!data || data.length === 0) {
+      throw new Error('Nenhum registro atualizado. Verifique se você tem permissão para editar este usuário.');
     }
   }
 
