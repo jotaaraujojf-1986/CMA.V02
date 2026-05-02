@@ -228,6 +228,30 @@ class SupabaseDatabaseService {
     }
   }
 
+  async updateUser(user: User): Promise<void> {
+    const company = await this.getCurrentCompany();
+    const userToSave = {
+      ...user,
+      empresa_id: (user as any).empresa_id || user.empresaId || company?.id
+    };
+    
+    // Remover auth_id antes de atualizar para evitar conflitos se for gerado no DB
+    const { auth_id, ...dataToUpdate } = userToSave as any;
+    
+    const { error } = await supabase.from('users').update(dataToUpdate).eq('id', user.id);
+    
+    if (error) {
+       // fallback
+       if (error.message?.includes('classification') || error.message?.includes('Could not find the')) {
+          const { classification, cep, street, addressNumber, complement, neighborhood, city, state, address, ...safeU } = dataToUpdate as any;
+          const { error: fallbackError } = await supabase.from('users').update(safeU).eq('id', user.id);
+          if (fallbackError) throw fallbackError;
+          return;
+       }
+       throw error;
+    }
+  }
+
   // --- Settings ---
   async getTechnicianTargets(): Promise<TechnicianTargets> {
     const { data, error } = await supabase.from('system_settings').select('value').eq('key', 'technician_targets').single();

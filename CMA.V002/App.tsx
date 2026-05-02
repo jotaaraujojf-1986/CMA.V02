@@ -256,23 +256,31 @@ const App = () => {
   };
 
   const handleUpdateProfile = async (updatedUser: User) => {
-    const oldUser = usersList.find(u => u.id === updatedUser.id);
+    try {
+      const oldUser = usersList.find(u => u.id === updatedUser.id);
 
-    // Sincroniza credenciais em auth.users se email ou senha mudaram
-    const emailChanged = oldUser && updatedUser.email !== oldUser.email;
-    const passwordChanged = !!(updatedUser as any).password;
-    if (emailChanged || passwordChanged) {
-      await db.updateUserAuthCredentials(
-        updatedUser.id,
-        emailChanged ? updatedUser.email : undefined,
-        passwordChanged ? (updatedUser as any).password : undefined,
-      );
+      // Sincroniza credenciais em auth.users se email ou senha mudaram
+      const emailChanged = oldUser && updatedUser.email !== oldUser.email;
+      const passwordChanged = !!(updatedUser as any).password;
+      if (emailChanged || passwordChanged) {
+        await db.updateUserAuthCredentials(
+          updatedUser.id,
+          emailChanged ? updatedUser.email : undefined,
+          passwordChanged ? (updatedUser as any).password : undefined,
+        );
+      }
+
+      await db.updateUser(updatedUser);
+
+      const newList = usersList.map(u => u.id === updatedUser.id ? updatedUser : u);
+      setUsersList(newList);
+      if (user && user.id === updatedUser.id) setUser(updatedUser);
+      if (userToEdit) setUserToEdit(null);
+      alert('Perfil atualizado com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao atualizar perfil:', error);
+      alert(`Erro ao atualizar perfil: ${error.message}`);
     }
-
-    const newList = usersList.map(u => u.id === updatedUser.id ? updatedUser : u);
-    await saveUsers(newList);
-    if (user && user.id === updatedUser.id) setUser(updatedUser);
-    if (userToEdit) setUserToEdit(null);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
