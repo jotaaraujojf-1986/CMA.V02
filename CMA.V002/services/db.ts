@@ -230,25 +230,35 @@ class SupabaseDatabaseService {
 
   async updateUser(user: User): Promise<void> {
     const company = await this.getCurrentCompany();
-    const userToSave = {
-      ...user,
-      empresa_id: (user as any).empresa_id || user.empresaId || company?.id
+
+    // Monta apenas os campos que existem como colunas no banco (remove aliases TypeScript)
+    const {
+      empresaId,   // alias camelCase — coluna real é empresa_id
+      auth_id,     // gerenciado pelo sistema de auth, não alterar
+      ...rest
+    } = { ...user } as any;
+
+    const dataToUpdate = {
+      ...rest,
+      empresa_id: (user as any).empresa_id || empresaId || company?.id,
     };
-    
-    // Remover auth_id antes de atualizar para evitar conflitos se for gerado no DB
-    const { auth_id, ...dataToUpdate } = userToSave as any;
-    
-    const { error } = await supabase.from('users').update(dataToUpdate).eq('id', user.id);
-    
+
+    const { error, count } = await supabase
+      .from('users')
+      .update(dataToUpdate)
+      .eq('id', user.id)
+      .select('id', { count: 'exact', head: true });
+
     if (error) {
-       // fallback
-       if (error.message?.includes('classification') || error.message?.includes('Could not find the')) {
-          const { classification, cep, street, addressNumber, complement, neighborhood, city, state, address, ...safeU } = dataToUpdate as any;
-          const { error: fallbackError } = await supabase.from('users').update(safeU).eq('id', user.id);
-          if (fallbackError) throw fallbackError;
-          return;
-       }
-       throw error;
+      // Fallback: remove colunas adicionadas posteriormente que podem não existir
+      const { classification, cep, street, addressNumber, complement, neighborhood, city, state, address, ...safeU } = dataToUpdate as any;
+      const { error: fallbackError } = await supabase.from('users').update(safeU).eq('id', user.id);
+      if (fallbackError) throw fallbackError;
+      return;
+    }
+
+    if (count === 0) {
+      throw new Error('Nenhuma linha atualizada. Verifique suas permissões de acesso.');
     }
   }
 
