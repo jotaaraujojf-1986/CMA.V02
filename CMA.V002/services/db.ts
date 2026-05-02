@@ -487,7 +487,7 @@ class SupabaseDatabaseService {
 
       const notifsToSave = notifications.map(n => ({
         ...n,
-        timestamp: n.timestamp instanceof Date ? n.timestamp.toISOString() : n.timestamp,
+        timestamp: (n.timestamp as any) instanceof Date ? (n.timestamp as any).toISOString() : n.timestamp,
         empresa_id: (n as any).empresa_id || (n as any).empresaId || company.id
       }));
 
