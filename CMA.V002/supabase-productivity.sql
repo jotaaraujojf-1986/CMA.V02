@@ -1,8 +1,0 @@
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS value_brl NUMERIC(15,2);
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS finished_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS technician_id TEXT;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS "technicianId" TEXT;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS "technicianName" TEXT;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS "startDate" TEXT;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS "deadlineDate" TEXT;
-ALTER TABLE environments ADD COLUMN IF NOT EXISTS "completedDate" TEXT;

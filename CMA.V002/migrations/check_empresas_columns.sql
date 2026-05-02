@@ -1,6 +1,0 @@
--- Verifica as colunas existentes na tabela empresas
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'empresas'
-ORDER BY ordinal_position;
